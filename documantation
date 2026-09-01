@@ -1,0 +1,88 @@
+Customer Churn Data Cleaning & Preprocessing
+An end-to-end, reproducible data cleaning and validation pipeline designed for customer churn datasets using Python and Pandas.  
+This project establishes a standardized ETL (Extract, Transform, Load) workflow to clean raw customer data, enforce data types, sanitize categorical values, verify business logic rules, and perform mathematical validations prior to downstream analytics or machine learning.  
+Executive Summary
+Raw data collected from production databases and billing systems often contains subtle formatting issues, such as un-trimmed categorical whitespaces, non-standardized column names (camelCase vs. space-separated), loose data typing, and floating-point total charge discrepancies.  
+This pipeline automates the sanitization process using standard data engineering patterns to ensure the resulting dataset is consistent, clean, and fully validated.  
+Key Technical Achievements
+Automated Schema Standardization: Automatically converts column headers containing spaces, camelCase, or special characters into standardized snake_case using regular expressions.  
+Pandas 3.x Modern Compliance: Built using explicit data type inclusions (select_dtypes(include=["object", "string"])) to prevent deprecation warnings across modern Pandas versions.  
+Mathematical Business Rule Auditing: Validates financial integrity by mathematically confirming that recorded total charges equal monthly charges multiplied by customer tenure ($Total = Monthly \times Tenure$) within floating-point tolerances.  
+Data Quality Audit Reporting: Generates a real-time summary report tracking total rows, column counts, missing value checks, duplicate counts, and constraint validations.  
+Data Pipeline Architecture
+[ Raw CSV Dataset ]
+         │
+         ▼
+[ Step 1: Ingestion & Exploratory Inspection ]
+   • Load CSV into memory
+   • Measure DataFrame dimensions (rows/columns)
+   • Inspect raw data types, nulls, duplicates, and describe() statistics
+         │
+         ▼
+[ Step 2: Column Header Standardization ]
+   • Strip whitespace from header strings
+   • Apply Regular Expressions to map CamelCase and special characters to snake_case
+         │
+         ▼
+[ Step 3: Categorical Cleaning & Type Casting ]
+   • Isolate text features using modern dtypes selection
+   • Strip leading/trailing whitespaces from text fields
+   • Cast categorical variables explicitly to PyArrow string dtypes
+   • Convert numeric fields to int64 and float64
+         │
+         ▼
+[ Step 4: Business Logic & Mathematical Validation ]
+   • Verify Primary Key (customer_id) uniqueness and null counts
+   • Bounded age verification (18 to 100)
+   • Check non-negativity for tenure, monthly charges, total charges, and support tickets
+   • Mathematical check: Total Charges == Monthly Charges * Tenure Months (atol=0.01)
+         │
+         ▼
+[ Step 5: Data Quality Reporting & Export ]
+   • Print Final Data Quality Audit Log
+   • Export audit-ready dataset as customer_churn_clean.csv (index=False)
+Data Schema & Validation Constraints
+Column NameStandardized NameTarget Data TypeBusiness Validation ConstraintsCustomerIDcustomer_idstringPrimary key; must be non-null and strictly unique across all rows.  
+GendergenderstringCategorical; trimmed of leading/trailing whitespaces.  
+Ageageint64Integer value bounded between 18 and 100 years old.  
+TenureMonthstenure_monthsint64Non-negative integer ($\ge 0$).  
+SubscriptionTypesubscription_typestringCategorical text; trimmed whitespace.  
+MonthlyChargesmonthly_chargesfloat64Non-negative decimal currency amount ($\ge 0.00$).  
+TotalChargestotal_chargesfloat64Bounded rule: Must equal $\text{MonthlyCharges} \times \text{TenureMonths} \pm 0.01$.  
+ContractTypecontract_typestringCategorical text; trimmed whitespace.  
+SupportTicketssupport_ticketsint64Non-negative count of customer support tickets ($\ge 0$).  
+PaymentMethodpayment_methodstringCategorical text; trimmed whitespace.  
+ChurnchurnstringBinary target classification label (Yes / No).  
+Pipeline Operations Explained
+1. Regex Column Standardization
+The pipeline processes raw headers by stripping edge spaces, converting upper-to-lower transition points into underscores (converting TenureMonths into tenure_months), translating non-alphanumeric characters into single underscores, and lowering all characters. This produces standardized headers compatible with SQL tables and analytical toolings.  
+2. Modern Categorical Selection
+Rather than relying on legacy dtype checks, the workflow filters categorical fields using explicit dtype targets (object and string). Each string variable is converted into Pandas dedicated string type and stripped of accidental spaces (e.g., converting "Male " to "Male").  
+3. Numerical Type Enforcement
+To protect downstream numeric calculations from string-corrupted numbers, numerical variables are converted explicitly. Integer fields (age, tenure_months, support_tickets) and floating-point monetary fields (monthly_charges, total_charges) are cast with strict error handling to flag non-numeric values.  
+4. Floating-Point Mathematical Auditing
+Data entry errors or system bugs can cause total charges to drift from actual billed history. The pipeline calculates the expected lifetime billing using monthly charges multiplied by tenure months, rounded to two decimal places. It then applies absolute tolerance evaluation to confirm equality while accounting for floating-point binary representation limits.  
+5. Data Quality Audit Log
+Before saving, the pipeline aggregates all validation outcomes into an audit summary. This provides immediate verification of total rows processed, column count, null counts, duplicate records, customer ID uniqueness, and total charge mathematical integrity.  
+Data Quality Summary Sample Output
+Upon completing the pipeline execution, the system displays an explicit Quality Audit Report:  
+Plaintext
+
+==================================================
+FINAL DATA QUALITY REPORT
+==================================================
+Final Rows: 15
+Final Columns: 11
+Missing Values: 0
+Duplicate Records: 0
+Customer IDs Unique: True
+Total Charges Consistent: True
+Environment Requirements & Setup
+To execute this pipeline without deprecation warnings, ensure your environment matches the following tooling requirements:  
+Python Version: 3.10 or newer
+Pandas: Version 2.0+ or 3.0+ (supports PyArrow string handling and updated dtype filtering)  
+NumPy: Version 1.24+ (provides floating-point tolerance utilities)  
+Jupyter Notebook / Lab: Compatible with modern Jupyter kernels  
+Deliverables & Output Files
+customer_churn_clean.csv: Sanitized, type-enforced, and validated output dataset ready for analytics, dashboarding, or model training.  
+Data Quality Audit Log: In-memory summary printed at the conclusion of execution to confirm data integrity.
